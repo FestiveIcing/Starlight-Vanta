@@ -5,13 +5,13 @@ import { cva } from "class-variance-authority"
 import { cn } from "./utils"
 
 const toggleVariants = cva(
-  "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-muted hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground",
+  "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
-        default: "bg-transparent",
+        default: "border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white",
         outline:
-          "border border-input bg-transparent shadow-sm hover:bg-accent hover:text-accent-foreground",
+          "border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white",
       },
       size: {
         default: "h-9 px-3",
@@ -26,10 +26,13 @@ const toggleVariants = cva(
   }
 )
 
-const Toggle = React.forwardRef(({ className, variant, size, ...props }, ref) => (
+const Toggle = React.forwardRef(({ className, variant, size, active, ...props }, ref) => (
   <TogglePrimitive.Root
     ref={ref}
-    className={cn(toggleVariants({ variant, size, className }))}
+    className={cn(
+      toggleVariants({ variant, size, className }),
+      active && "bg-violet-600 text-white border-violet-500 hover:bg-violet-500"
+    )}
     {...props}
   />
 ))
