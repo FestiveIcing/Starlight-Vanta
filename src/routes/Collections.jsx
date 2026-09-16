@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { RefreshCw, Search } from "lucide-react";
 import Seo from "../components/Seo";
@@ -23,7 +23,13 @@ export default function Collections() {
     return generate(collection.config, 18, seed * 7919);
   }, [active, seed]);
 
+  // The first batch renders on load; only batches the visitor asked for count.
+  const firstBatch = useRef(true);
   useEffect(() => {
+    if (firstBatch.current) {
+      firstBatch.current = false;
+      return;
+    }
     const collection = COLLECTIONS.find((entry) => entry.name === active) || COLLECTIONS[0];
     recordGenerated(items.length, collection.config.style);
     // eslint-disable-next-line react-hooks/exhaustive-deps

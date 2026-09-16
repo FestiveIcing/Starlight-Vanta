@@ -64,7 +64,7 @@ export default function Generator() {
   const patch = (next) => setConfig((prev) => normalizeConfig({ ...prev, ...next }));
 
   const run = useCallback(
-    async (override) => {
+    async (override, { counted = true } = {}) => {
       const active = normalizeConfig(override || config);
       setBusy(true);
       playClick(settings.soundEffects);
@@ -72,7 +72,9 @@ export default function Generator() {
       const batch = generate(active, 12);
       setResults(batch);
       addHistory(batch.slice(0, 6));
-      recordGenerated(batch.length, active.style);
+      // Only runs the visitor asked for are counted, so a crawler loading the
+      // page with JS enabled cannot move the public total.
+      if (counted) recordGenerated(batch.length, active.style);
       setBusy(false);
     },
     [config, settings.soundEffects, reduceMotion, addHistory, recordGenerated]
@@ -85,9 +87,9 @@ export default function Generator() {
       const next = normalizeConfig({ ...config, style: incoming });
       setConfig(next);
       setParams({}, { replace: true });
-      run(next);
+      run(next, { counted: false });
     } else if (!results.length) {
-      run();
+      run(undefined, { counted: false });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

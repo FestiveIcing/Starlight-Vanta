@@ -1,28 +1,28 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Check, Copy, Sparkles } from "lucide-react";
+import { ArrowRight, ArrowUpRight, ChevronDown } from "lucide-react";
 import Seo from "../components/Seo";
-import GlassPanel from "../components/GlassPanel";
-import Field from "../components/Field";
-import ResultCard from "../components/ResultCard";
-import { generate, generateFromSeed, PRESETS } from "../lib/engine";
+import NameChip from "../components/NameChip";
+import { COLLECTIONS, generate, generateFromSeed } from "../lib/engine";
 import { useVanta } from "../state/VantaContext";
 import { useLocalState } from "../lib/storage";
-import { formatCount } from "../lib/utils";
+import { cn, formatCount } from "../lib/utils";
+
+const SEED_EXAMPLES = ["ember", "atlas", "koi", "vesper", "moss", "orbit"];
 
 const FAQ = [
   {
     q: "Where does the generation actually happen?",
-    a: "In the tab you have open. The word banks, the phonotactic rules and the scoring all ship as part of the page, so a name exists on your machine and nowhere else. There is no generation endpoint to call.",
+    a: "In the tab you have open. The vocabulary, the phonotactic rules and the scoring all ship as part of the page, so a name exists on your machine and nowhere else. There is no generation endpoint to call.",
   },
   {
     q: "Are the names checked against real platforms?",
-    a: "No. Checking availability would mean sending every candidate to Instagram, Discord or Steam on your behalf, which is exactly the kind of traffic this site is built to avoid. Copy a name you like and check it yourself.",
+    a: "No. Checking availability would mean sending every candidate to Instagram, Discord or Steam on your behalf, which is exactly the traffic this site is built to avoid. Copy a name you like and check it yourself.",
   },
   {
-    q: "What do the two meters mean?",
-    a: "Rarity is a function of length, letter frequency and character variety — short names made of uncommon letters score highest. Flow measures how readable the result is out loud: vowel balance, consonant clusters and syllable alternation. A name can be rare and unreadable, so both are shown.",
+    q: "What do the two numbers mean?",
+    a: "Rarity comes from length, letter frequency and character variety — short names made of uncommon letters score highest. Flow measures how readable the result is out loud. A name can be rare and unreadable, so both are shown rather than averaged into one score.",
   },
   {
     q: "Is anything saved about me?",
@@ -32,15 +32,20 @@ const FAQ = [
 
 function useCountUp(target, enabled) {
   const [value, setValue] = useState(target);
+  const previous = useRef(target);
 
   useEffect(() => {
     if (!enabled) {
       setValue(target);
+      previous.current = target;
       return undefined;
     }
+    const from = previous.current;
+    previous.current = target;
+    if (from === target) return undefined;
+
     const start = performance.now();
-    const from = 0;
-    const duration = 900;
+    const duration = 700;
     let frame;
     const step = (now) => {
       const progress = Math.min(1, (now - start) / duration);
@@ -55,21 +60,139 @@ function useCountUp(target, enabled) {
   return value;
 }
 
-function Stat({ label, value, hint }) {
+/* The hero is the tool, not a picture of the tool: type a word, names appear. */
+function Hero() {
+  const { reduceMotion } = useVanta();
+  const [word, setWord] = useState("");
+  const [placeholder, setPlaceholder] = useState(SEED_EXAMPLES[0]);
+  const [nudge, setNudge] = useState(0);
+
+  useEffect(() => {
+    if (word || reduceMotion) return undefined;
+    const timer = setInterval(() => {
+      setPlaceholder(SEED_EXAMPLES[Math.floor(Math.random() * SEED_EXAMPLES.length)]);
+    }, 2600);
+    return () => clearInterval(timer);
+  }, [word, reduceMotion]);
+
+  const active = word.trim().length >= 2 ? word.trim() : placeholder;
+
+  const results = useMemo(
+    () => generateFromSeed(active, { style: "aesthetic" }, 6, 4177 + nudge),
+    [active, nudge]
+  );
+
   return (
-    <div className="flex flex-col gap-1 px-5 py-4">
-      <span className="font-mono text-2xl tabular-nums text-white sm:text-3xl">{value}</span>
-      <span className="text-xs text-white/55">{label}</span>
-      {hint && <span className="text-[11px] text-white/25">{hint}</span>}
-    </div>
+    <section className="flex flex-col items-center gap-7 pt-4 text-center">
+      <motion.h1
+        initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="text-balance text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl"
+      >
+        Find a name{" "}
+        <span className="bg-gradient-to-r from-violet-400 to-fuchsia-300 bg-clip-text text-transparent">
+          worth keeping.
+        </span>
+      </motion.h1>
+
+      <p className="max-w-lg text-pretty text-sm leading-relaxed text-white/55 sm:text-base">
+        Start with a word that already means something to you. Vanta builds around it using phonetic
+        rules, then scores what survives.
+      </p>
+
+      <div className="w-full max-w-xl">
+        <div className="flex items-center gap-2 rounded-2xl border border-white/12 bg-white/[0.04] p-2 backdrop-blur-xl transition-colors focus-within:border-violet-400/50">
+          <input
+            value={word}
+            onChange={(event) => setWord(event.target.value.replace(/[^a-zA-Z]/g, "").slice(0, 14))}
+            placeholder={placeholder}
+            aria-label="A word to build names around"
+            className="min-w-0 flex-1 bg-transparent px-3 py-2.5 font-mono text-base text-white outline-none placeholder:text-white/25 sm:text-lg"
+          />
+          <button
+            type="button"
+            onClick={() => setNudge((value) => value + 1)}
+            className="shrink-0 rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-violet-500"
+          >
+            Again
+          </button>
+        </div>
+
+        <div className="mt-4 flex min-h-[76px] flex-wrap items-start justify-center gap-2">
+          {results.map((item) => (
+            <NameChip key={item.name} name={item.name} rarity={item.rarity} size="lg" />
+          ))}
+        </div>
+
+        {!word && (
+          <p className="mt-1 text-[11px] text-white/25">
+            Showing names built from “{placeholder}”. Type your own above.
+          </p>
+        )}
+      </div>
+
+      <Link
+        to="/generator"
+        className="group flex items-center gap-1.5 text-sm text-white/55 transition-colors hover:text-white"
+      >
+        Or open the full generator
+        <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+      </Link>
+    </section>
   );
 }
 
-function TasteTest() {
+/* A worked example beats three abstract "how it works" cards. */
+function WorkedExample() {
+  const steps = [
+    { label: "Two roots", value: "lumen · nova", note: "Drawn from the celestial register." },
+    { label: "Shared seam", value: "lume(n)(n)ova", note: "The repeated n collapses instead of doubling." },
+    { label: "Filtered", value: "lumenova", note: "Vowel ratio 0.50, no consonant cluster, not an English word." },
+    { label: "Scored", value: "rarity 64 · flow 96", note: "Deterministic — this name always scores the same." },
+  ];
+
+  return (
+    <section className="grid gap-10 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)] lg:items-center">
+      <div>
+        <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+          It builds names. It doesn't staple numbers to words.
+        </h2>
+        <p className="mt-4 text-sm leading-relaxed text-white/50">
+          Every candidate passes through the same four steps. Anything that fails one is thrown away
+          and rebuilt rather than trimmed to fit, which is why you never see a name cut off halfway
+          through a syllable.
+        </p>
+        <Link
+          to="/collections"
+          className="group mt-6 inline-flex items-center gap-1.5 text-sm text-violet-300 transition-colors hover:text-violet-200"
+        >
+          See it across twelve collections
+          <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+        </Link>
+      </div>
+
+      <ol className="relative flex flex-col gap-0 border-l border-white/10 pl-6">
+        {steps.map((step, index) => (
+          <li key={step.label} className="relative pb-6 last:pb-0">
+            <span className="absolute -left-[26px] top-1 h-2 w-2 rounded-full bg-violet-400/70 ring-4 ring-[#050505]" />
+            <p className="text-[10px] uppercase tracking-widest text-white/30">
+              {String(index + 1).padStart(2, "0")} · {step.label}
+            </p>
+            <p className="mt-1 font-mono text-lg text-white">{step.value}</p>
+            <p className="mt-1 text-xs leading-relaxed text-white/40">{step.note}</p>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+function KeepOrPass() {
   const [profile, setProfile] = useLocalState("vanta.taste", { kept: [], passed: 0 });
   const [pool, setPool] = useState([]);
   const [index, setIndex] = useState(0);
-  const { toggleFavorite, isFavorite } = useVanta();
+  const { toggleFavorite, isFavorite, reduceMotion } = useVanta();
 
   const refill = useCallback(() => {
     const styles = ["aesthetic", "rare", "dark", "futuristic", "nature", "mythic", "minimal"];
@@ -85,6 +208,7 @@ function TasteTest() {
   }, [refill]);
 
   const current = pool[index];
+  const seen = profile.kept.length + profile.passed;
 
   const leaning = useMemo(() => {
     const tally = {};
@@ -105,124 +229,195 @@ function TasteTest() {
     else setIndex(index + 1);
   }
 
-  const seen = profile.kept.length + profile.passed;
-
   return (
-    <GlassPanel className="flex flex-col gap-5 p-6">
-      <div>
-        <p className="text-[11px] uppercase tracking-widest text-white/35">Keep or pass</p>
-        <p className="mt-1 text-sm text-white/50">
-          Judge a few names and the site works out which register you actually like.
-        </p>
-      </div>
+    <section className="overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-transparent">
+      <div className="grid gap-8 p-8 sm:p-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:items-center">
+        <div>
+          <p className="text-[11px] uppercase tracking-widest text-violet-300/60">Keep or pass</p>
+          <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white">
+            Not sure what you're after?
+          </h2>
+          <p className="mt-3 text-sm leading-relaxed text-white/50">
+            Judge a handful of names and the site works out which register you actually respond to,
+            then hands the generator over already tuned. Everything you keep is bookmarked.
+          </p>
 
-      <div className="flex min-h-[72px] items-center justify-center rounded-xl border border-white/10 bg-black/30 px-4">
-        <motion.p key={current?.name} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-mono text-2xl text-white">
-          {current?.name ?? "…"}
-        </motion.p>
-      </div>
+          <div className="mt-6 flex items-center gap-4">
+            <div className="flex gap-1" aria-hidden="true">
+              {Array.from({ length: 5 }).map((_, dot) => (
+                <span
+                  key={dot}
+                  className={cn(
+                    "h-1.5 w-6 rounded-full transition-colors",
+                    dot < Math.min(seen, 5) ? "bg-violet-400/80" : "bg-white/10"
+                  )}
+                />
+              ))}
+            </div>
+            <span className="text-[11px] text-white/30">
+              {seen} judged · {profile.kept.length} kept
+            </span>
+          </div>
 
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => judge(false)}
-          className="flex-1 rounded-lg border border-white/10 bg-white/5 py-2 text-xs text-white/60 transition-colors hover:bg-white/10 hover:text-white"
-        >
-          Pass
-        </button>
-        <button
-          type="button"
-          onClick={() => judge(true)}
-          className="flex-1 rounded-lg bg-violet-600 py-2 text-xs font-medium text-white transition-colors hover:bg-violet-500"
-        >
-          Keep
-        </button>
-      </div>
+          {leaning && (
+            <Link
+              to={`/generator?style=${leaning}`}
+              className="group mt-4 inline-flex items-center gap-1.5 text-sm text-violet-300 hover:text-violet-200"
+            >
+              You lean {leaning} — open the generator
+              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+          )}
+        </div>
 
-      <div className="flex items-center justify-between border-t border-white/5 pt-4 text-[11px]">
-        <span className="text-white/30">{seen} judged · {profile.kept.length} kept</span>
-        {leaning ? (
-          <Link to={`/generator?style=${leaning}`} className="flex items-center gap-1 text-violet-300 hover:text-violet-200">
-            You lean {leaning} <ArrowRight className="h-3 w-3" />
-          </Link>
-        ) : (
-          <span className="text-white/25">Keep a few to see your leaning</span>
-        )}
+        <div className="flex flex-col gap-3">
+          <div className="flex min-h-[112px] items-center justify-center rounded-2xl border border-white/10 bg-black/40 px-6">
+            <motion.p
+              key={current?.name}
+              initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+              className="break-all text-center font-mono text-3xl text-white sm:text-4xl"
+            >
+              {current?.name ?? "…"}
+            </motion.p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => judge(false)}
+              className="flex-1 rounded-xl border border-white/10 bg-white/[0.03] py-3 text-sm text-white/55 transition-colors hover:bg-white/[0.07] hover:text-white active:scale-[0.98]"
+            >
+              Pass
+            </button>
+            <button
+              type="button"
+              onClick={() => judge(true)}
+              className="flex-1 rounded-xl bg-violet-600 py-3 text-sm font-medium text-white transition-colors hover:bg-violet-500 active:scale-[0.98]"
+            >
+              Keep
+            </button>
+          </div>
+        </div>
       </div>
-    </GlassPanel>
+    </section>
   );
 }
 
-function SeedBox() {
-  const [word, setWord] = useState("");
-  const [copied, setCopied] = useState("");
-  const results = useMemo(
-    () => (word.trim().length >= 2 ? generateFromSeed(word.trim(), { style: "aesthetic" }, 6, 1337) : []),
-    [word]
-  );
-
-  async function copy(name) {
-    try {
-      await navigator.clipboard.writeText(name);
-      setCopied(name);
-      setTimeout(() => setCopied(""), 1200);
-    } catch {
-      /* clipboard unavailable */
-    }
-  }
+function CollectionPreview() {
+  const [active, setActive] = useState(COLLECTIONS[0].name);
+  const preview = useMemo(() => {
+    const collection = COLLECTIONS.find((entry) => entry.name === active) || COLLECTIONS[0];
+    return generate(collection.config, 6, 20260916);
+  }, [active]);
 
   return (
-    <GlassPanel className="flex flex-col gap-4 p-6">
-      <div>
-        <p className="text-[11px] uppercase tracking-widest text-white/35">Start from a word</p>
-        <p className="mt-1 text-sm text-white/50">
-          Give it something that already means something to you and it builds around it.
-        </p>
+    <section className="flex flex-col gap-5">
+      <div className="flex items-end justify-between gap-4">
+        <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">Collections</h2>
+        <Link to="/collections" className="shrink-0 text-xs text-violet-300 hover:text-violet-200">
+          Open all twelve →
+        </Link>
       </div>
-      <Field
-        value={word}
-        onChange={(event) => setWord(event.target.value.replace(/[^a-zA-Z]/g, "").slice(0, 14))}
-        placeholder="ember, atlas, koi…"
-        aria-label="Seed word"
-      />
+
       <div className="flex flex-wrap gap-2">
-        {results.length ? (
-          results.map((item) => (
-            <button
-              key={item.name}
-              type="button"
-              onClick={() => copy(item.name)}
-              className="group flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 font-mono text-sm text-white/80 transition-colors hover:border-violet-400/40 hover:text-white"
-            >
-              {item.name}
-              {copied === item.name ? (
-                <Check className="h-3 w-3 text-emerald-400" />
-              ) : (
-                <Copy className="h-3 w-3 text-white/20 group-hover:text-white/50" />
-              )}
-            </button>
-          ))
-        ) : (
-          <p className="text-xs text-white/25">Type at least two letters.</p>
-        )}
+        {COLLECTIONS.map((collection) => (
+          <button
+            key={collection.name}
+            type="button"
+            onMouseEnter={() => setActive(collection.name)}
+            onFocus={() => setActive(collection.name)}
+            onClick={() => setActive(collection.name)}
+            className={cn(
+              "rounded-full border px-3 py-1.5 text-xs transition-colors duration-200",
+              active === collection.name
+                ? "border-violet-400/50 bg-violet-500/15 text-violet-100"
+                : "border-white/10 text-white/45 hover:border-white/25 hover:text-white/85"
+            )}
+          >
+            {collection.name}
+          </button>
+        ))}
       </div>
-    </GlassPanel>
+
+      <div className="flex min-h-[44px] flex-wrap gap-2">
+        {preview.map((item) => (
+          <NameChip key={item.name} name={item.name} rarity={item.rarity} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Numbers() {
+  const { stats, statsLoaded, reduceMotion } = useVanta();
+  const total = useCountUp(stats.total, statsLoaded && !reduceMotion);
+
+  const rows = [
+    { label: "Names generated, all time", value: formatCount(total), note: `includes a disclosed ${formatCount(stats.baseline)} baseline` },
+    { label: "Generated today", value: formatCount(stats.today), note: "resets at midnight UTC" },
+    { label: "Generated this week", value: formatCount(stats.week), note: "rolling seven days" },
+    { label: "Busiest register this week", value: stats.styles?.[0]?.style || "—", note: stats.configured ? "across all visitors" : "counter warming up" },
+  ];
+
+  return (
+    <section className="flex flex-col gap-5">
+      <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">By the numbers</h2>
+      <dl className="grid grid-cols-1 border-t border-white/[0.08] sm:grid-cols-2 lg:grid-cols-4">
+        {rows.map((row) => (
+          <div key={row.label} className="border-b border-white/[0.08] px-1 py-5 sm:border-r sm:last:border-r-0 sm:pl-0 sm:pr-6 lg:pl-6 lg:first:pl-0">
+            <dd className="font-mono text-3xl tabular-nums text-white">{row.value}</dd>
+            <dt className="mt-2 text-xs text-white/55">{row.label}</dt>
+            <p className="mt-0.5 text-[11px] text-white/25">{row.note}</p>
+          </div>
+        ))}
+      </dl>
+      <p className="text-[11px] text-white/25">
+        The counter records a number and a register name. No identifiers, no cookies, no IP logging —
+        and you can opt out entirely in{" "}
+        <Link to="/settings" className="text-white/40 underline underline-offset-2 hover:text-white">
+          Settings
+        </Link>
+        .
+      </p>
+    </section>
+  );
+}
+
+function Questions() {
+  const [open, setOpen] = useState(0);
+
+  return (
+    <section className="flex flex-col gap-5">
+      <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">Questions</h2>
+      <div className="border-t border-white/[0.08]">
+        {FAQ.map((item, index) => (
+          <div key={item.q} className="border-b border-white/[0.08]">
+            <button
+              type="button"
+              onClick={() => setOpen(open === index ? -1 : index)}
+              aria-expanded={open === index}
+              className="flex w-full items-center justify-between gap-6 py-4 text-left"
+            >
+              <span className="text-sm text-white/85">{item.q}</span>
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 shrink-0 text-white/30 transition-transform duration-300",
+                  open === index && "rotate-180"
+                )}
+              />
+            </button>
+            {open === index && (
+              <p className="max-w-2xl pb-5 text-xs leading-relaxed text-white/45">{item.a}</p>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
 export default function Home() {
-  const { stats, statsLoaded, reduceMotion } = useVanta();
-  const [sample, setSample] = useState([]);
-
-  // Sample names are decoration for the hero, so they are deliberately left out
-  // of the public counter — that figure should only reflect names people asked for.
-  useEffect(() => {
-    setSample(generate({ style: "aesthetic", minLength: 4, maxLength: 10 }, 4));
-  }, []);
-
-  const total = useCountUp(stats.total, statsLoaded && !reduceMotion);
-  const topStyle = stats.styles?.[0]?.style;
-
   const faqSchema = useMemo(
     () => ({
       "@context": "https://schema.org",
@@ -237,155 +432,31 @@ export default function Home() {
   );
 
   return (
-    <div className="flex flex-col gap-20">
+    <div className="flex flex-col gap-24">
       <Seo path="/" />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
 
-      <section className="flex flex-col items-center gap-6 pt-6 text-center">
-        <motion.h1
-          initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-balance text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl"
-        >
-          Find a name{" "}
-          <span className="bg-gradient-to-r from-violet-400 to-fuchsia-300 bg-clip-text text-transparent">
-            worth keeping.
-          </span>
-        </motion.h1>
-        <p className="max-w-xl text-pretty text-sm leading-relaxed text-white/55 sm:text-base">
-          Names are assembled from phonetic rules and a curated root vocabulary, then scored for
-          rarity and readability. All of it runs on your device — nothing you generate is uploaded.
-        </p>
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <Link
-            to="/generator"
-            className="flex items-center gap-2 rounded-full bg-violet-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-violet-500"
-          >
-            <Sparkles className="h-4 w-4" /> Open the generator
-          </Link>
-          <Link
-            to="/collections"
-            className="rounded-full border border-white/12 px-5 py-2.5 text-sm text-white/70 transition-colors hover:border-white/25 hover:text-white"
-          >
-            Browse collections
-          </Link>
-        </div>
+      <Hero />
+      <WorkedExample />
+      <KeepOrPass />
+      <CollectionPreview />
+      <Numbers />
+      <Questions />
 
-        {sample.length > 0 && (
-          <div className="mt-4 grid w-full grid-cols-1 gap-3 text-left sm:grid-cols-2 lg:grid-cols-4">
-            {sample.map((item, index) => (
-              <ResultCard key={item.name} item={item} index={index} />
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section aria-labelledby="numbers">
-        <h2 id="numbers" className="sr-only">Usage</h2>
-        <GlassPanel className="grid grid-cols-1 divide-y divide-white/5 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-          <Stat
-            label="Names generated"
-            value={formatCount(total)}
-            hint={`Includes a fixed ${formatCount(stats.baseline)} opening baseline`}
-          />
-          <Stat label="Generated today" value={formatCount(stats.today)} hint="Resets at midnight UTC" />
-          <Stat
-            label="Most-used style this week"
-            value={topStyle ? topStyle : "—"}
-            hint={stats.configured ? "Aggregate across all visitors" : "Waiting on first writes"}
-          />
-        </GlassPanel>
-        <p className="mt-3 text-center text-[11px] text-white/25">
-          The counter records a number and a style name. No identifiers, no cookies, no IP logging.
-        </p>
-      </section>
-
-      <section className="grid gap-5 lg:grid-cols-2">
-        <SeedBox />
-        <TasteTest />
-      </section>
-
-      <section className="flex flex-col gap-6">
+      <section className="flex flex-col items-start justify-between gap-5 border-t border-white/[0.08] pt-10 sm:flex-row sm:items-center">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">How a name gets built</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/50">
-            The generator does not pick a word and staple a number to it. Each candidate goes through
-            three stages, and anything that fails a stage is thrown away rather than patched.
+          <h2 className="text-lg font-medium text-white">Free, no accounts, no advertising.</h2>
+          <p className="mt-1 max-w-lg text-xs leading-relaxed text-white/45">
+            If Vanta saved you an afternoon of refreshing a sign-up form, a one-off contribution
+            covers the hosting.
           </p>
         </div>
-        <div className="grid gap-4 md:grid-cols-3">
-          {[
-            {
-              step: "01",
-              title: "Assemble",
-              body: "Roots are drawn from a vocabulary grouped by register — mineral, celestial, weather, technical. Blends only survive when the two roots share a seam or hand off vowel to consonant.",
-            },
-            {
-              step: "02",
-              title: "Filter",
-              body: "Candidates are checked against phonotactic rules: no three-consonant pile-ups, no quadruple vowels, a vowel ratio between 22% and 68%, and no accidental English words.",
-            },
-            {
-              step: "03",
-              title: "Score",
-              body: "Survivors get a rarity figure from length and letter frequency, and a flow figure from syllable alternation. Both are deterministic — the same name always scores the same.",
-            },
-          ].map((item) => (
-            <GlassPanel key={item.step} className="flex flex-col gap-3 p-5">
-              <span className="font-mono text-xs text-violet-300/60">{item.step}</span>
-              <h3 className="text-base font-medium text-white">{item.title}</h3>
-              <p className="text-xs leading-relaxed text-white/45">{item.body}</p>
-            </GlassPanel>
-          ))}
-        </div>
-      </section>
-
-      <section className="flex flex-col gap-6">
-        <div className="flex items-end justify-between gap-4">
-          <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">Starting points</h2>
-          <Link to="/presets" className="shrink-0 text-xs text-violet-300 hover:text-violet-200">
-            All presets →
-          </Link>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {PRESETS.slice(0, 4).map((preset) => (
-            <GlassPanel key={preset.name} className="flex flex-col gap-2 p-5">
-              <h3 className="text-sm font-medium text-white">{preset.name}</h3>
-              <p className="text-xs leading-relaxed text-white/45">{preset.desc}</p>
-            </GlassPanel>
-          ))}
-        </div>
-      </section>
-
-      <section className="flex flex-col gap-6">
-        <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">Questions</h2>
-        <div className="grid gap-4 md:grid-cols-2">
-          {FAQ.map((item) => (
-            <div key={item.q} className="border-t border-white/8 pt-4">
-              <h3 className="text-sm font-medium text-white/85">{item.q}</h3>
-              <p className="mt-2 text-xs leading-relaxed text-white/45">{item.a}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section>
-        <GlassPanel className="flex flex-col items-start gap-4 p-7 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-lg font-medium text-white">Vanta is free and has no accounts.</h2>
-            <p className="mt-1 max-w-lg text-xs leading-relaxed text-white/45">
-              If it saved you an afternoon of refreshing a sign-up form, a one-off contribution covers
-              the hosting.
-            </p>
-          </div>
-          <Link
-            to="/donate"
-            className="shrink-0 rounded-full border border-violet-400/40 bg-violet-500/10 px-5 py-2.5 text-sm text-violet-100 transition-colors hover:bg-violet-500/20"
-          >
-            Donate
-          </Link>
-        </GlassPanel>
+        <Link
+          to="/donate"
+          className="shrink-0 rounded-full border border-violet-400/40 bg-violet-500/10 px-5 py-2.5 text-sm text-violet-100 transition-colors hover:bg-violet-500/20"
+        >
+          Donate
+        </Link>
       </section>
     </div>
   );
