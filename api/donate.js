@@ -47,11 +47,13 @@ export default async function handler(request, response) {
       return;
     }
 
+    // No statement_descriptor_suffix: Stripe rejects one unless the account has
+    // a descriptor prefix configured, and a first live donation is the wrong
+    // place to find that out. The description carries the context instead.
     const intent = await stripe.paymentIntents.create({
       amount,
       currency: "usd",
       description: "Donation to Starlight Vanta",
-      statement_descriptor_suffix: "VANTA",
       automatic_payment_methods: { enabled: true },
       metadata: { product: "starlight-vanta", kind: "donation" },
     });
