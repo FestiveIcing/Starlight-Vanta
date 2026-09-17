@@ -17,8 +17,8 @@ const LINKS = [
 function Mark() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" fill="none" stroke="rgba(167,139,250,0.55)" strokeWidth="1.2" />
-      <circle cx="12" cy="12" r="4.2" fill="#a78bfa" fillOpacity="0.85" />
+      <circle cx="12" cy="12" r="10" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="1.2" />
+      <circle cx="12" cy="12" r="4.2" fill="#ffffff" fillOpacity="0.85" />
     </svg>
   );
 }
@@ -71,15 +71,15 @@ export default function Nav() {
               className={cn(
                 "hidden rounded-full border px-3.5 py-1.5 text-xs transition-colors duration-300 sm:inline-block",
                 pathname === "/donate"
-                  ? "border-violet-400/50 bg-violet-500/15 text-violet-100"
-                  : "border-white/12 text-white/60 hover:border-white/25 hover:text-white"
+                  ? "border-white/40 text-white"
+                  : "border-white/12 text-white/55 hover:border-white/30 hover:text-white"
               )}
             >
               Donate
             </Link>
             <Link
               to="/generator"
-              className="rounded-full bg-violet-600 px-4 py-1.5 text-xs font-medium text-white transition-colors duration-300 hover:bg-violet-500"
+              className="rounded-full bg-white px-4 py-1.5 text-xs font-medium text-black transition-colors duration-300 hover:bg-white/85"
             >
               Generate
             </Link>
