@@ -5,9 +5,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Inter Tight", "ui-sans-serif", "system-ui", "sans-serif"],
-        display: ["Instrument Serif", "ui-serif", "Georgia", "serif"],
-        mono: ["IBM Plex Mono", "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
+        sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        mono: ["JetBrains Mono", "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
       },
     },
   },
