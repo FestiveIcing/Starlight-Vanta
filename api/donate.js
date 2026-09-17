@@ -4,22 +4,34 @@ const MIN_CENTS = 200;
 const MAX_CENTS = 50000;
 const PRESETS = [300, 500, 1000, 2500];
 
+// A live key set explicitly always wins over whatever the Vercel Stripe
+// integration injected, so going live never means fighting the integration for
+// ownership of STRIPE_SECRET_KEY.
+function secretKey() {
+  return process.env.STRIPE_LIVE_SECRET_KEY || process.env.STRIPE_SECRET_KEY || "";
+}
+
+function publishableKey() {
+  return process.env.STRIPE_LIVE_PUBLISHABLE_KEY || process.env.STRIPE_PUBLISHABLE_KEY || "";
+}
+
 function stripeClient() {
-  const key = process.env.STRIPE_SECRET_KEY;
+  const key = secretKey();
   return key ? new Stripe(key, { apiVersion: "2025-08-27.basil" }) : null;
 }
 
 export default async function handler(request, response) {
   response.setHeader("cache-control", "no-store");
 
-  const publishableKey = process.env.STRIPE_PUBLISHABLE_KEY || "";
+  const publishable = publishableKey();
   const stripe = stripeClient();
-  const enabled = Boolean(stripe && publishableKey);
+  const enabled = Boolean(stripe && publishable);
 
   if (request.method === "GET") {
     response.status(200).json({
       enabled,
-      publishableKey: enabled ? publishableKey : "",
+      publishableKey: enabled ? publishable : "",
+      livemode: publishable.startsWith("pk_live_"),
       currency: "usd",
       presets: PRESETS,
       min: MIN_CENTS,

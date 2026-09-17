@@ -48,6 +48,22 @@ const APPEARANCE = {
       color: "rgba(255,255,255,0.40)",
       marginBottom: "7px",
     },
+    ".AccordionItem": {
+      backgroundColor: "rgba(255,255,255,0.025)",
+      border: "1px solid rgba(255,255,255,0.08)",
+      boxShadow: "none",
+      transition: "border-color .2s ease, background-color .2s ease",
+    },
+    ".AccordionItem:hover": { backgroundColor: "rgba(255,255,255,0.05)" },
+    ".AccordionItem--selected": {
+      backgroundColor: "rgba(139,92,246,0.10)",
+      borderColor: "rgba(167,139,250,0.45)",
+      color: "#ede9fe",
+    },
+    ".RadioIcon": { width: "16px" },
+    ".RadioIconOuter": { stroke: "rgba(255,255,255,0.25)" },
+    ".RadioIconOuter--checked": { stroke: "#a78bfa" },
+    ".RadioIconInner": { fill: "#a78bfa" },
     ".Tab": {
       backgroundColor: "rgba(255,255,255,0.03)",
       border: "1px solid rgba(255,255,255,0.09)",
@@ -138,7 +154,11 @@ function PaymentForm({ amount }) {
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-6">
-      <PaymentElement options={{ layout: "tabs" }} />
+      <PaymentElement
+        options={{
+          layout: { type: "accordion", defaultCollapsed: false, radios: true, spacedAccordionItems: false },
+        }}
+      />
       {message && (
         <p className="rounded-lg border border-red-400/25 bg-red-500/[0.07] px-3 py-2 text-xs text-red-300">
           {message}
@@ -246,15 +266,19 @@ export default function Donate() {
       <Seo path="/donate" />
 
       <header className="text-center">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-400/25 bg-violet-500/10 px-3 py-1 text-[11px] text-violet-200/80">
-          <Sparkles className="h-3 w-3" /> Pay what it's worth to you
-        </span>
-        <h1 className="mt-5 text-4xl font-semibold tracking-tight text-white sm:text-5xl">Donate</h1>
+        <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">Donate</h1>
         <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-white/55">
           Vanta has no accounts, no advertising and nothing to upsell. If it found you a name you
           kept, a one-off contribution covers the hosting.
         </p>
       </header>
+
+      {config?.enabled && !config.livemode && (
+        <p className="rounded-xl border border-amber-400/25 bg-amber-500/[0.06] px-4 py-3 text-xs leading-relaxed text-amber-200/80">
+          This deployment is running against Stripe test keys. The form works end to end, but no
+          card is charged and no money changes hands.
+        </p>
+      )}
 
       {config && !config.enabled && (
         <Panel>
