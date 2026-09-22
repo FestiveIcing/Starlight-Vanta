@@ -14,7 +14,7 @@ const SECTIONS = [
     id: "who",
     heading: "Who is responsible",
     body: [
-      "Starlight Vanta is operated by Starlight Solutions, Inc. (“we”, “us”). Questions about this policy can be sent to contact@starsolenterprise.com.",
+      "Starlight Vanta is operated by Starlight Solutions, Inc. (“we”, “us”). Questions about this policy can be sent to privacy@starsolenterprise.com.",
     ],
   },
   {
@@ -62,7 +62,7 @@ const SECTIONS = [
     id: "children",
     heading: "Children",
     body: [
-      "Starlight Vanta is not directed at children under 13, and we do not knowingly collect personal information from them. Because the service collects no personal information from any visitor, there is nothing for a parent to request deletion of; if you believe otherwise, write to contact@starsolenterprise.com.",
+      "Starlight Vanta is not directed at children under 13, and we do not knowingly collect personal information from them. Because the service collects no personal information from any visitor, there is nothing for a parent to request deletion of; if you believe otherwise, write to privacy@starsolenterprise.com.",
     ],
   },
   {

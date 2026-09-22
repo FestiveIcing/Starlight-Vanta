@@ -53,7 +53,7 @@ const SECTIONS = [
     body: [
       "Donations are voluntary contributions to Starlight Solutions, Inc. They are not a purchase, they do not buy a product, a feature, a service level or any other benefit, and they do not create a contract for the supply of anything.",
       "Donations are not tax deductible. Starlight Solutions, Inc. is not a charitable organisation.",
-      "Because nothing is supplied in return, donations are generally non-refundable, except where a refund is required by law or where a payment was made in error. Write to contact@starsolenterprise.com before raising a dispute with your bank; a mistaken or duplicated payment is faster to resolve directly.",
+      "Because nothing is supplied in return, donations are generally non-refundable, except where a refund is required by law or where a payment was made in error. Write to help@starsolenterprise.com before raising a dispute with your bank; a mistaken or duplicated payment is faster to resolve directly.",
       "Payments are processed by Stripe and are subject to Stripe's own terms. We never receive or store your card details.",
     ],
   },
@@ -100,7 +100,7 @@ const SECTIONS = [
   {
     id: "contact",
     heading: "Contact",
-    body: ["Legal enquiries can be directed to contact@starsolenterprise.com."],
+    body: ["Legal enquiries can be directed to legal@starsolenterprise.com."],
   },
 ];
 
